@@ -1,18 +1,24 @@
+// based on cs3650 starter code
+
 #ifndef INODE_H
 #define INODE_H
 
 #include "pages.h"
 
 typedef struct inode {
-    int mode; // permission & type; zero for unused
+    int refs; // reference count
+    int mode; // permission & type
     int size; // bytes
-    // inode #x always uses data page #x
+    int ptrs[2]; // direct pointers
+    int iptr; // single indirect pointer
 } inode;
 
 void print_inode(inode* node);
 inode* get_inode(int inum);
-int alloc_inode();
+int alloc_inode(int mode);
 void free_inode();
+int grow_inode(inode* node, int size);
+int shrink_inode(inode* node, int size);
 int inode_get_pnum(inode* node, int fpn);
 
 #endif

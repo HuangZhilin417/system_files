@@ -127,7 +127,7 @@ storage_mknod(const char* path, int mode)
         return -EEXIST;
     }
 
-    int    inum = alloc_inode();
+    int    inum = alloc_inode(mode);
     inode* node = get_inode(inum);
     node->mode = mode;
     node->size = 0;
