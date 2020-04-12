@@ -24,19 +24,23 @@ static int   pages_fd   = -1;
 static void* pages_base =  0;
 
 void
-pages_init(const char* path)
+pages_init(const char* path, int create)
 {
-    pages_fd = open(path, O_CREAT | O_RDWR, 0644);
-    assert(pages_fd != -1);
+    if(create){
+    	pages_fd = open(path, O_CREAT | O_RDWR, 0644);
+    	assert(pages_fd != -1);
 
-    int rv = ftruncate(pages_fd, NUFS_SIZE);
-    assert(rv == 0);
+    	int rv = ftruncate(pages_fd, NUFS_SIZE);
+    	assert(rv == 0);
+    }
+    else{
+    	pages_base = mmap(0, NUFS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pages_fd, 0);
+    	assert(pages_base != MAP_FAILED);
+    }
 
-    pages_base = mmap(0, NUFS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pages_fd, 0);
-    assert(pages_base != MAP_FAILED);
-
-    void* pbm = get_pages_bitmap();
+    void* pbm = get_pbitmap();
     bitmap_put(pbm, 0, 1);
+    bitmap_put(pbm, 1, 1);
 }
 
 void
@@ -53,24 +57,17 @@ pages_get_page(int pnum)
 }
 
 void*
-get_pages_bitmap()
+get_pbitmap()
 {
     return pages_get_page(0);
-}
-
-void*
-get_inode_bitmap()
-{
-    uint8_t* page = pages_get_page(0);
-    return (void*)(page + 32);
 }
 
 int
 alloc_page()
 {
-    void* pbm = get_pages_bitmap();
+    void* pbm = get_pbitmap();
 
-    for (int ii = 1; ii < PAGE_COUNT; ++ii) {
+    for (int ii = 2; ii < PAGE_COUNT; ++ii) {
         if (!bitmap_get(pbm, ii)) {
             bitmap_put(pbm, ii, 1);
             printf("+ alloc_page() -> %d\n", ii);
@@ -85,7 +82,7 @@ void
 free_page(int pnum)
 {
     printf("+ free_page(%d)\n", pnum);
-    void* pbm = get_pages_bitmap();
+    void* pbm = get_pbitmap();
     bitmap_put(pbm, pnum, 0);
 }
 

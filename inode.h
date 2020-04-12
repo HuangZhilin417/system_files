@@ -17,8 +17,9 @@ void print_inode(inode* node);
 inode* get_inode(int inum);
 int alloc_inode(int mode);
 void free_inode();
+int get_isize(inode* node);
 int grow_inode(inode* node, int size);
 int shrink_inode(inode* node, int size);
-int inode_get_pnum(inode* node, int fpn);
+//int inode_get_pnum(inode* node, int fpn);
 
 #endif
