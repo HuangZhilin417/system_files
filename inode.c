@@ -125,6 +125,9 @@ get_isize(inode* node){
 int
 shrink_inode(inode* node, int size) 
 {	
+	if (size > node->size) {
+        return -1;
+	}
 	int current_size = node->size;
 	int current_page = bytes_to_pages(current_size);
 	int new_page = bytes_to_pages(current_size - size);

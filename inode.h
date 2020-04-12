@@ -16,7 +16,7 @@ typedef struct inode {
 void print_inode(inode* node);
 inode* get_inode(int inum);
 int alloc_inode(int mode);
-void free_inode();
+void free_inode(int inum);
 int get_isize(inode* node);
 int grow_inode(inode* node, int size);
 int shrink_inode(inode* node, int size);

@@ -30,84 +30,133 @@ directory_init()
     }
 }
 
-char*
-directory_get(int ii)
-{
-    char* base = pages_get_page(1);
-    return base + ii*ENT_SIZE;
-}
 
 int
-directory_lookup(const char* name)
+directory_lookup(inode* dd, const char* name)
 {
-    for (int ii = 0; ii < 64; ++ii) {
-        dirent* ent = (dirent*)directory_get(ii);
-	printf("the looked: %s, the ent: %s\n", name, ent->name);
-        if (streq(ent->name, name)) {
-            return ent->inum;
+  void* directory = pages_get_page(dd->ptrs[0]);
+
+    for (int ii = 0; ii < dd->size; ii += ENT_SIZE) {
+        dirent* entry = (dirent*)(directory + ii);
+
+        if (streq(entry->name, name)) {
+            return entry->inum;
         }
     }
-    return -ENOENT;
+      	
+      return -ENOENT;
 }
 
 int
 tree_lookup(const char* path)
 {
-    assert(path[0] == '/');
-
-    if (streq(path, "/")) {
-        return 1;
+    if (strcmp(path, "/") == 0) {
+        return 0;
     }
 
-    return directory_lookup(path + 1);
-}
+    slist* dir_list = directory_list(path);
+
+
+    int inum = 0;
+    while (dir_list != 0 && inum != -1 && dir_list->next) {
+        inode* curr = get_inode(inum);
+        inum = directory_lookup(curr, dir_list->data);
+        dir_list = dir_list->next;
+    }
+
+  
+    return inum;
+   }
 
 int
-directory_put(const char* name, int inum)
+directory_put(inode* dd, const char* name, int inum)
 {
-    dirent* ent = (dirent*) directory_get(inum);
-    strlcpy(ent->name, name, 48);
-    printf("+ dirent = '%s'\n", ent->name);
-
-    inode* node = get_inode(inum);
-    ent->inum = inum;
-    printf("+ directory_put(..., %s, %d) -> 0\n", name, inum);
-    print_inode(node);
-
-    return 0;
-}
+  
+   if (grow_inode(dd, sizeof(dirent)) != -1) {
+        void* base = pages_get_page(dd->ptrs[0]);
+    
+        dirent* de = (dirent*)(base + (dd->size - sizeof(dirent)));
+	char new_name[48];
+	memset(name, '\0', sizeof(name));
+   	strcpy(new_name, name);
+	de->name = new_name;
+        de->inum = inum;
+        return 0;
+    }
+    
+    return -1;
+  }
 
 int
-directory_delete(const char* name)
+directory_delete(inode* dd, const char* name)
 {
-    printf(" + directory_delete(%s)\n", name);
+    int rv = -1;
+    int dirent_addr = -1;
+    int dirent_inum = -1;
 
-    int inum = directory_lookup(name);
-    free_inode(inum);
+    void* directory = pages_get_page(dd->ptrs[0]);
 
-    dirent* ent = (dirent*)directory_get(inum);
-    memset(ent->name, 0, 48*sizeof(char));
-    ent->inum = 0;
+    for (int i = 0; i < dd->size; i += sizeof(dirent)) {
+        dirent* ent = (dirent*)(directory + i);
 
-    return 0;
-}
-
-slist*
-directory_list()
-{
-    printf("+ directory_list()\n");
-    slist* ys = 0;
-
-    for (int ii = 0; ii < 64; ++ii) {
-        dirent* ent = (dirent*)directory_get(ii);
-        if (ent) {
-            printf(" - %d: %s [%d]\n", ii, ent->name, ii);
-            ys = s_cons(ent->name, ys);
+        if (streq(ent->name, name)) {
+            dirent_addr = i;
+            dirent_inum = ent->inum;
+            break;
         }
     }
+    inode* data = get_inode(dirent_inum);
+    data->refs -= 1;
+    if(data->refs == 0){
+	free_inode(dirent_inum);
+    }
 
-    return ys;
-}
+
+    for(int ii = dirent_addr + sizeof(dirent); ii < dd->size; ii += sizeof(dirent)){
+	dirent* curr = (dirent*)(directory + ii);
+	dirent* prev = (dirent*)(directory + ii - sizeof(dirent));
+	memset(prev->name, '\0', 48);
+	strcpy(prev->name, curr->name);
+	prev->inum = curr->inum;
+
+    }
+   return shrink_inode(dd, sizeof(dirent));
+    
+
+   
+   }
+
+slist*
+directory_list(const char* path)
+{
+    slist* list = 0;
+    int i = 0;
+    int n = 0;
+    char hi[48];
+    char ch;
+    int slash = 0;
+    int length = strlen(path);
+    while (i < length){
+        ch = path[i];
+        hi[n] = ch;
+        n++;
+        if(ch == '/' || i == length - 1){
+            if(i == length - 1){
+                n++;
+            }
+            slash = i;
+            char data[48];
+            memcpy(data, hi, n - 1);
+            data[n - 1] = '\0';
+            list = s_cons(data, list);
+            memset(hi, '\0', sizeof(hi));
+            n = 0;
+        }
+    i++;
+    }
+
+    return s_reverse(list);
+   }
 
 void
 print_directory(inode* dd)
