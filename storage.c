@@ -122,19 +122,24 @@ storage_mknod(const char* path, int mode)
 
     const char* name = path + 1;
 
-    if (directory_lookup(name) != -ENOENT) {
-        printf("mknod fail: already exist\n");
-        return -EEXIST;
-    }
-
     int    inum = alloc_inode(mode);
     inode* node = get_inode(inum);
     node->mode = mode;
     node->size = 0;
 
+    if (directory_lookup(node, name) != -ENOENT) {
+        printf("mknod fail: already exist\n");
+        return -EEXIST;
+    }
+
+    char* parent = get_parent(path);
+    int inum = tree_lookup(parent);
+    inode* parentdir = get_inode(inum);
+    free(parent);
+
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
 
-    return directory_put(name, inum);
+    return directory_put(parentdir, name, inum, );
 }
 
 int
@@ -161,8 +166,12 @@ storage_list(const char* path)
 int
 storage_unlink(const char* path)
 {
+    char* parent = get_parent(path);
+    int inum = tree_lookup(parent);
+    inode* node = get_inode(inum);
+    free(parent);
     const char* name = path + 1;
-    return directory_delete(name);
+    return directory_delete(node, name);
 }
 
 int
@@ -180,24 +189,24 @@ storage_link(const char* from, const char* to)
     assert(to_rv == -ENOENT);
     if (to_rv != -ENOENT) {
         return to_rv;
-    }
-    
-    int inum = directory_lookup(from);
+    char* parent = get_parent(from);
+    int inum = tree_lookup(parent);
     inode* node = get_inode(inum);
     node->refs += 1;
-    
-    return directory_put(from, inum);
+    free(parent); 
+    return directory_put(to, inum);
 }
 
 int
 storage_rename(const char* from, const char* to)
-{
-    int inum = directory_lookup(from + 1);
+{   
+    
+    int inum = tree_lookup(from + 1);
     if (inum < 0) {
         printf("mknod fail");
         return inum;
     }
-
+    //not sure what to do about this.
     char* ent = directory_get(inum);
     strlcpy(ent, to + 1, 16);
 
