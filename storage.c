@@ -23,7 +23,8 @@
 
 int iptr_write(int iptr, const char* buf, size_t size, off_t offset);
 int ptr_write(inode* node, int ptr, const char* buf, size_t size, off_t offset);
-
+int iptr_read(int iptr, char* buf, size_t size, off_t offset);
+int ptr_read(inode* node, int ptr, char* buf, size_t size, off_t offset);
 	
 	void
 storage_init(const char* path, int create)
@@ -62,27 +63,32 @@ storage_stat(const char* path, struct stat* st)
 int
 storage_read(const char* path, char* buf, size_t size, off_t offset)
 {
+    int trv = storage_truncate(path, offset + size);
+    if (trv < 0) {
+        return trv;
+    }
+
     int inum = tree_lookup(path);
     if (inum < 0) {
         return inum;
     }
+
     inode* node = get_inode(inum);
-    printf("+ storage_read(%s); inode %d\n", path, inum);
-    print_inode(node);
+    int start_idx = offset /4096;
+    off_t real_off = offset - (start_idx * 4096);
 
-    if (offset >= node->size) {
-        return 0;
+    if ((offset + size) > node->size) {
+        if(grow_inode(node, offset + size - node->size) < 0){
+		return -1;
+        }
     }
+    
 
-    if (offset + size >= node->size) {
-        size = node->size - offset;
+    if(start_idx >= 2){
+	    return iptr_read(node->iptr, buf, size, offset - 8192);
+    }else{
+	    return ptr_read(node, start_idx, buf, size, real_off);
     }
-
-    uint8_t* data = pages_get_page(inum);
-    printf(" + reading from page: %d\n", inum);
-    memcpy(buf, data + offset, size);
-
-    return size;
 }
 
 int
@@ -110,9 +116,9 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
     
 
     if(start_idx >= 2){
-	return iptr_write(node->iptr, buf, size, offset - 8192);
+	    return iptr_write(node->iptr, buf, size, offset - 8192);
     }else{
-	return ptr_write(node, start_idx, buf, size, real_off);
+	    return ptr_write(node, start_idx, buf, size, real_off);
     }
 
     
@@ -153,6 +159,40 @@ iptr_write(int iptr, const char* buf, size_t size, off_t offset){
 
 }
 
+int
+ptr_read(inode* node, int ptr, char* buf, size_t size, off_t offset){
+	void* data = pages_get_page(node->ptrs[ptr]);
+	if(offset + size < 4096){	
+		memcpy(buf, data + offset, size);
+		return 0;
+	}else{
+		size_t curr_size = 4096 - offset;
+		memcpy(buf, data + offset, curr_size);
+		if(ptr){
+			return iptr_read(node->iptr, buf + curr_size, size - curr_size, 0);
+		}else{
+			return ptr_read(node, 1, buf + curr_size, size - curr_size, 0);
+		}
+	}
+
+}
+
+
+int
+iptr_read(int iptr, char* buf, size_t size, off_t offset){
+	inode* node = get_inode(iptr);
+   	uint8_t* data = pages_get_page(iptr);
+
+   	int start_idx = offset /4096;
+    off_t real_off = offset - (start_idx * 4096);    
+
+    if(start_idx >= 2){
+		return iptr_read(node->iptr, buf, size, offset - 8192);
+   	}else{
+		return ptr_read(node, start_idx, buf, size, real_off);
+    }
+
+}
 
 int
 storage_truncate(const char *path, off_t size)
