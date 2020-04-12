@@ -181,7 +181,11 @@ storage_link(const char* from, const char* to)
     if (to_rv != -ENOENT) {
         return to_rv;
     }
-    int inum = directory_lookup(to);
+    
+    int inum = directory_lookup(from);
+    inode* node = get_inode(inum);
+    node->refs += 1;
+    
     return directory_put(from, inum);
 }
 
