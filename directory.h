@@ -38,9 +38,9 @@ slist* directory_list(const char* path);
 //directory
 void print_directory(inode* dd);
 
-int change_directory_name(inode* parent_name, char* name, char* new_name);
+int change_directory_name(inode* parent_name, const char* name, const char* new_name);
 
-char* get_name(char* path);
+const char* get_name(const char* path);
 
 #endif
 
