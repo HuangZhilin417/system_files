@@ -22,7 +22,7 @@
 void
 directory_init()
 {
-    inode* rn = get_inode(1);
+    inode* rn = get_inode(0);
 
     if (rn->mode == 0) {
         rn->size = 0;
@@ -69,18 +69,18 @@ tree_lookup(const char* path)
    }
 
 int
-directory_put(inode* dd, const char* name, int inum)
+directory_put(inode* dd, const char* name, int inum, int is_dir)
 {
   
    if (grow_inode(dd, sizeof(dirent)) != -1) {
         void* base = pages_get_page(dd->ptrs[0]);
     
         dirent* de = (dirent*)(base + (dd->size - sizeof(dirent)));
-	char new_name[48];
-	memset(name, '\0', sizeof(name));
+	char* new_name = de->name;
+	memset(new_name, '\0', sizeof(name));
    	strcpy(new_name, name);
-	de->name = new_name;
         de->inum = inum;
+	de->is_dir = is_dir;
         return 0;
     }
     
@@ -104,6 +104,9 @@ directory_delete(inode* dd, const char* name)
             dirent_inum = ent->inum;
             break;
         }
+    }
+    if(dirent_addr == -1){
+	return -1;
     }
     inode* data = get_inode(dirent_inum);
     data->refs -= 1;
@@ -162,10 +165,15 @@ void
 print_directory(inode* dd)
 {
     printf("Contents:\n");
-    slist* items = directory_list(dd);
-    for (slist* xs = items; xs != 0; xs = xs->next) {
-        printf("- %s\n", xs->data);
+    
+    void* directory = pages_get_page(dd->ptrs[0]);
+
+    for (int ii = 0; ii < dd->size; ii += ENT_SIZE) {
+        dirent* entry = (dirent*)(directory + ii);
+	printf("- %s\n", entry->name);
+	if(entry->is_dir){
+		inode* more = get_inode(entry->inum);
+		print_directory(more);
+	}
     }
-    printf("(end of contents)\n");
-    s_free(items);
 }
