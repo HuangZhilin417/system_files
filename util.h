@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+
 static int
 streq(const char* aa, const char* bb)
 {
@@ -71,6 +72,36 @@ assert_ok_real(long rv, const char* file, const int line)
         abort();
     }
 }
+
+
+char*
+get_parent(const char* path){
+    int i = 0;
+    int n = 0;
+    char* hi = malloc(48 * sizeof(char));
+    char ch;
+    int slash = 0;
+    int length = strlen(path);
+   while (i < length){
+
+       ch = path[i];
+       if(ch == '/'){
+           slash = i;
+           n++;
+       }
+      i++;
+   }
+   if(n == 1){
+       return "/";
+   }else{
+       memset(hi, '\0', 48);
+       strncpy(hi, path, slash);
+       hi[slash] = '\0';
+       return hi;
+   }
+}
+
+
 
 #define assert_ok(rv) assert_ok_real(rv, __FILE__, __LINE__)
 
