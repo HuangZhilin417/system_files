@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
+#include "slist.h"
 static int
 streq(const char* aa, const char* bb)
 {
@@ -74,8 +74,9 @@ assert_ok_real(long rv, const char* file, const int line)
 }
 
 
-char*
-get_parent(const char* path){
+static char*
+get_parent(const char* path)
+{
     int i = 0;
     int n = 0;
     char* hi = malloc(48 * sizeof(char));
@@ -100,6 +101,7 @@ get_parent(const char* path){
        return hi;
    }
 }
+
 
 
 

@@ -26,17 +26,20 @@ static void* pages_base =  0;
 void
 pages_init(const char* path, int create)
 {
-    if(create){
-    	pages_fd = open(path, O_CREAT | O_RDWR, 0644);
-    	assert(pages_fd != -1);
+   if (create) {
+        pages_fd = open(path, O_CREAT | O_EXCL | O_RDWR, 0644);
+        assert(pages_fd != -1);
 
-    	int rv = ftruncate(pages_fd, NUFS_SIZE);
-    	assert(rv == 0);
+        int rv = ftruncate(pages_fd, NUFS_SIZE);
+        assert(rv == 0);
     }
-    else{
-    	pages_base = mmap(0, NUFS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pages_fd, 0);
-    	assert(pages_base != MAP_FAILED);
+    else {
+        pages_fd = open(path, O_RDWR);
+        assert(pages_fd != -1);
     }
+
+    pages_base = mmap(0, NUFS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pages_fd, 0);
+    assert(pages_base != MAP_FAILED); 
 
     void* pbm = get_pbitmap();
     bitmap_put(pbm, 0, 1);
