@@ -20,6 +20,7 @@ void free_inode(int inum);
 int get_isize(inode* node);
 int grow_inode(inode* node, int size);
 int shrink_inode(inode* node, int size);
+void* get_ibitmap();
 //int inode_get_pnum(inode* node, int fpn);
 
 #endif

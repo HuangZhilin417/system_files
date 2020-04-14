@@ -40,8 +40,11 @@ void print_directory(inode* dd);
 
 int change_directory_name(inode* parent_name, const char* name, const char* new_name);
 
-const char* get_name(const char* path);
+char* get_name(const char* path);
 
 slist* list_all(const char* path);
+
+
+int is_file_dir(const char* path);
 #endif
 

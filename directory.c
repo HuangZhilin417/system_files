@@ -22,12 +22,12 @@
 void
 directory_init()
 {
-    inode* rn = get_inode(0);
+   /* inode* rn = get_inode(0);
 
     if (rn->mode == 0) {
         rn->size = 0;
         rn->mode = 040755;
-    }
+    }*/
 }
 
 
@@ -207,7 +207,7 @@ directory_list(const char* path)
     return s_reverse(list);
    }
 
-const char* 
+char* 
 get_name(const char* path){
 	
       slist* list = directory_list(path);
@@ -218,6 +218,22 @@ get_name(const char* path){
       return list->data;
 
 
+}
+
+int
+is_file_dir(const char* path){
+	char* parent = get_parent(path);
+	int parent_inum = tree_lookup(parent);
+	inode* parent_dir = get_inode(parent_inum);
+	free(parent);
+	char* name = get_name(path);
+	void* directory = pages_get_page(parent_dir->ptrs[0]);	
+  	for (int ii = 0; ii < parent_dir->size; ii += ENT_SIZE) {
+        	dirent* entry = (dirent*)(directory + ii);
+        	if (streq(entry->name, name)) {
+	    		return entry->is_dir;
+        	}
+    	}
 }
 
 

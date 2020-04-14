@@ -113,7 +113,7 @@ storage_truncate(const char *path, off_t size)
 }
 
 int
-storage_mknod(const char* path, int mode)
+storage_mknod(const char* path, int mode, int is_dir)
 {
     char* tmp1 = alloca(strlen(path));
     char* tmp2 = alloca(strlen(path));
@@ -138,16 +138,13 @@ storage_mknod(const char* path, int mode)
     free(parent);
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
-    int is_dir = 0;
-    if(node->mode >= 040000){
-        int is_dir = 1;
-    }
 
     return directory_put(parentdir, name, inum, is_dir);
 }
 
 int
 storage_chmod(const char* path, mode_t mode){ 
+    
     int inum = tree_lookup(path);
     if (inum >= 0) {
         inode* node = get_inode(inum);

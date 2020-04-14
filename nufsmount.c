@@ -69,7 +69,7 @@ nufs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 int
 nufs_mknod(const char *path, mode_t mode, dev_t rdev)
 {
-    int rv = storage_mknod(path, mode);
+    int rv = storage_mknod(path, mode, 0);
     printf("mknod(%s, %04o) -> %d\n", path, mode, rv);
     return rv;
 }
@@ -79,7 +79,7 @@ nufs_mknod(const char *path, mode_t mode, dev_t rdev)
 int
 nufs_mkdir(const char *path, mode_t mode)
 {
-    int rv = storage_mknod(path, mode | 040000);
+    int rv = storage_mknod(path, mode | 040000, 1);
     printf("mkdir(%s) -> %d\n", path, rv);
     return rv;
 }

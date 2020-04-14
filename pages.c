@@ -16,6 +16,7 @@
 #include "pages.h"
 #include "util.h"
 #include "bitmap.h"
+#include "inode.h"
 
 const int PAGE_COUNT = 256;
 const int NUFS_SIZE  = 4096 * 256; // 1MB
@@ -42,10 +43,19 @@ pages_init(const char* path, int create)
     assert(pages_base != MAP_FAILED); 
 
     
-
+    if(create){
     void* pbm = get_pbitmap();
     bitmap_put(pbm, 0, 1);
     bitmap_put(pbm, 1, 1);
+
+    void* ibm = get_ibitmap();
+    bitmap_put(ibm, 0, 1);
+    inode* root_node = get_inode(0);
+    root_node->ptrs[0] = 1;
+    root_node->mode = 040755;
+    root_node->size = 0;
+    }
+
 }
 
 void
