@@ -48,6 +48,28 @@ directory_lookup(inode* dd, const char* name)
 }
 
 int
+change_directory_name(inode* parent_node, char* name, char* new_name){
+  void* directory = pages_get_page(parent_node->ptrs[0]);
+
+    for (int ii = 0; ii < parent_node->size; ii += ENT_SIZE) {
+        dirent* entry = (dirent*)(directory + ii);
+        if (streq(entry->name, name)) {
+
+	    char* dirent_name = entry->name;
+	    memset(dirent_name, '\0', sizeof(name));
+   	    strcpy(dirent_name, new_name);
+
+  
+	    return 0;
+        }
+    }
+      	
+      return -ENOENT;
+
+
+}
+
+int
 tree_lookup(const char* path)
 {
     if (strcmp(path, "/") == 0) {
@@ -160,6 +182,20 @@ directory_list(const char* path)
 
     return s_reverse(list);
    }
+
+char* 
+get_name(char* path){
+	
+      slist* list = directory_list(path);
+
+      while(list->next){
+	list = list->next;
+      }
+      return list->data;
+
+
+}
+
 
 void
 print_directory(inode* dd)

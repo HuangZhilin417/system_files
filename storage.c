@@ -113,7 +113,7 @@ storage_truncate(const char *path, off_t size)
 }
 
 int
-storage_mknod(const char* path, int mode)
+storage_mknod(const char* path, int mode, int is_dir)
 {
     char* tmp1 = alloca(strlen(path));
     char* tmp2 = alloca(strlen(path));
@@ -133,13 +133,13 @@ storage_mknod(const char* path, int mode)
     }
 
     char* parent = get_parent(path);
-    int inum = tree_lookup(parent);
-    inode* parentdir = get_inode(inum);
+    int parent_inum = tree_lookup(parent);
+    inode* parentdir = get_inode(parent_inum);
     free(parent);
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
 
-    return directory_put(parentdir, name, inum, );
+    return directory_put(parentdir, name, inum, is_dir);
 }
 
 int
@@ -200,17 +200,16 @@ storage_link(const char* from, const char* to)
 int
 storage_rename(const char* from, const char* to)
 {   
-    
-    int inum = tree_lookup(from + 1);
     if (inum < 0) {
         printf("mknod fail");
         return inum;
     }
-    //not sure what to do about this.
-    char* ent = directory_get(inum);
-    strlcpy(ent, to + 1, 16);
-
-    return 0;
+    char* parent = get_parent(from);
+    int parent_num = tree_lookup(parent);
+    inode* parent_node = get_inode(parent_num);
+    char* old_name = get_name(from);
+    char* new_name = get_name(to);
+    return change_directory_name(parent_node, old_name, new_name);
 }
 
 int
