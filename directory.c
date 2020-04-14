@@ -152,6 +152,30 @@ directory_delete(inode* dd, const char* name)
    }
 
 slist*
+list_all(const char* path){
+    slist* list = 0;
+    if (strcmp(path, "/") == 0) {
+	inode* node = get_inode(0);
+	void* directory = pages_get_page(node->ptrs[0]);	
+  	for (int ii = 0; ii < node->size; ii += ENT_SIZE) {
+        	dirent* entry = (dirent*)(directory + ii);
+        	list = s_cons(entry->name, list);
+    	}
+	return list;
+
+    }else{
+	int inum = tree_lookup(path);
+	inode* node = get_inode(inum);
+	void* directory = pages_get_page(node->ptrs[0]);	
+  	for (int ii = 0; ii < node->size; ii += ENT_SIZE) {
+        	dirent* entry = (dirent*)(directory + ii);
+        	list = s_cons(entry->name, list);
+    	}
+	return list;
+    }
+}
+
+slist*
 directory_list(const char* path)
 {
     slist* list = 0;
