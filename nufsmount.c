@@ -211,7 +211,7 @@ int
 main(int argc, char *argv[])
 {
     assert(argc > 2 && argc < 6);
-    storage_init(argv[--argc], 0);
+    storage_init(argv[--argc], 1);
     nufs_init_ops(&nufs_ops);
     return fuse_main(argc, argv, &nufs_ops, NULL);
 }

@@ -164,7 +164,7 @@ storage_chmod(const char* path, mode_t mode){
 slist*
 storage_list(const char* path)
 {
-    return directory_list(path);
+    return list_all(path);
 }
 
 int

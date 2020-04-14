@@ -41,6 +41,8 @@ pages_init(const char* path, int create)
     pages_base = mmap(0, NUFS_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, pages_fd, 0);
     assert(pages_base != MAP_FAILED); 
 
+    
+
     void* pbm = get_pbitmap();
     bitmap_put(pbm, 0, 1);
     bitmap_put(pbm, 1, 1);

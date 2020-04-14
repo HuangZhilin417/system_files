@@ -42,5 +42,6 @@ int change_directory_name(inode* parent_name, const char* name, const char* new_
 
 const char* get_name(const char* path);
 
+slist* list_all(const char* path);
 #endif
 
