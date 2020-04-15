@@ -20,7 +20,12 @@
 #include "inode.h"
 #include "directory.h"
 
-void
+
+int iptr_write(int iptr, const char* buf, size_t size, off_t offset);
+int ptr_write(inode* node, int ptr, const char* buf, size_t size, off_t offset);
+
+	
+	void
 storage_init(const char* path, int create)
 {
     //printf("storage_init(%s, %d);\n", path, create);
@@ -47,7 +52,7 @@ storage_stat(const char* path, struct stat* st)
     st->st_uid   = getuid();
     st->st_mode  = node->mode;
     st->st_size  = node->size;
-    st->st_nlink = 1;
+    st->st_nlink = node->refs;
     return 0;
 }
 
@@ -91,26 +96,76 @@ storage_write(const char* path, const char* buf, size_t size, off_t offset)
     }
 
     inode* node = get_inode(inum);
-    uint8_t* data = pages_get_page(inum);
-    printf("+ writing to page: %d\n", inum);
-    memcpy(data + offset, buf, size);
+    int start_idx = offset /4096;
+    off_t real_off = offset - (start_idx * 4096);
 
-    return size;
+    if ((offset + size) > node->size) {
+        if(grow_inode(node, offset + size - node->size) < 0){
+		return -1;
+        }
+    }
+    
+
+    if(start_idx >= 2){
+	return iptr_write(node->iptr, buf, size, offset - 8192);
+    }else{
+	return ptr_write(node, start_idx, buf, size, real_off);
+    }
+
+    
+   }
+
+int
+ptr_write(inode* node, int ptr, const char* buf, size_t size, off_t offset){
+	void* data = pages_get_page(node->ptrs[ptr]);
+	if(offset + size < 4096){	
+		memcpy(data + offset, buf, size);
+		return 0;
+	}else{
+		size_t curr_size = 4096 - offset;
+		memcpy(data + offset, buf, curr_size);
+		if(ptr){
+			return iptr_write(node->iptr, buf + curr_size, size - curr_size, 0);
+		}else{
+			return ptr_write(node, 1, buf + curr_size, size - curr_size, 0);
+		}
+	}
+
+}
+
+
+int
+iptr_write(int iptr, const char* buf, size_t size, off_t offset){
+	inode* node = get_inode(iptr);
+    	uint8_t* data = pages_get_page(iptr);
+
+    	int start_idx = offset /4096;
+    	off_t real_off = offset - (start_idx * 4096);    
+
+    	if(start_idx >= 2){
+		return iptr_write(node->iptr, buf, size, offset - 8192);
+   	}else{
+		return ptr_write(node, start_idx, buf, size, real_off);
+    	}
+
 }
 
 
 int
 storage_truncate(const char *path, off_t size)
-{
-    int inum = tree_lookup(path);
-    if (inum < 0) {
-        return inum;
-    }
-
-    inode* node = get_inode(inum);
-    node->size = size;
-    return 0;
+{	
+	int rv = -1;
+    	int inum = tree_lookup(path);
+	inode* inode = get_inode(inum);
+    	if (inode->size > size) {
+      		rv = shrink_inode(inode, size);
+   	}
+    	else {
+        	rv = grow_inode(inode, size);
+    	}
+	return rv;
 }
+
 
 int
 storage_mknod(const char* path, int mode, int is_dir)
@@ -120,7 +175,7 @@ storage_mknod(const char* path, int mode, int is_dir)
     strcpy(tmp1, path);
     strcpy(tmp2, path);
 
-    const char* name = path + 1;
+    char* name = get_name(path);
 
     int    inum = alloc_inode(mode);
     inode* node = get_inode(inum);
