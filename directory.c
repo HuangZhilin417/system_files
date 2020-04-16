@@ -38,7 +38,7 @@ directory_lookup(inode* dd, const char* name)
 
     for (int ii = 0; ii < dd->size; ii += ENT_SIZE) {
         dirent* entry = (dirent*)(directory + ii);
-
+	printf("%d the searched directory is: %s, %s,  %d\n", ii, entry->name, name, entry->inum);
         if (streq(entry->name, name)) {
             return entry->inum;
         }
@@ -76,7 +76,12 @@ tree_lookup(const char* path)
         return 0;
     }
 
-    slist* dir_list = directory_list(path);
+    slist* dir_list = directory_list(path + 1);
+    print_list(dir_list);
+    if(!dir_list->next){
+	char* name = get_name(path);
+	return directory_lookup(get_inode(0), dir_list->data);
+    }
 
 
     int inum = 0;
@@ -103,6 +108,7 @@ directory_put(inode* dd, const char* name, int inum, int is_dir)
    	strcpy(new_name, name);
         de->inum = inum;
 	de->is_dir = is_dir;
+	printf("directory put: %s, %d, is dir: %d\n", de->name, de->inum, is_dir);
         return 0;
     }
     
@@ -143,6 +149,7 @@ directory_delete(inode* dd, const char* name)
 	memset(prev->name, '\0', 48);
 	strcpy(prev->name, curr->name);
 	prev->inum = curr->inum;
+	prev->is_dir = curr->is_dir;
 
     }
    return shrink_inode(dd, sizeof(dirent));
@@ -210,7 +217,7 @@ directory_list(const char* path)
 char* 
 get_name(const char* path){
 	
-      slist* list = directory_list(path);
+      slist* list = directory_list(path + 1);
 
       while(list->next){
 	list = list->next;
@@ -225,7 +232,7 @@ is_file_dir(const char* path){
 	char* parent = get_parent(path);
 	int parent_inum = tree_lookup(parent);
 	inode* parent_dir = get_inode(parent_inum);
-	free(parent);
+	
 	char* name = get_name(path);
 	void* directory = pages_get_page(parent_dir->ptrs[0]);	
   	for (int ii = 0; ii < parent_dir->size; ii += ENT_SIZE) {

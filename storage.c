@@ -40,6 +40,9 @@ storage_stat(const char* path, struct stat* st)
 {
     printf("+ storage_stat(%s)\n", path);
     int inum = tree_lookup(path);
+    printf("the inum is: %d\n", inum);
+
+
     if (inum < 0) {
         return inum;
     }
@@ -169,12 +172,7 @@ storage_truncate(const char *path, off_t size)
 
 int
 storage_mknod(const char* path, int mode, int is_dir)
-{
-    char* tmp1 = alloca(strlen(path));
-    char* tmp2 = alloca(strlen(path));
-    strcpy(tmp1, path);
-    strcpy(tmp2, path);
-
+{  
     char* name = get_name(path);
 
     int    inum = alloc_inode(mode);
@@ -182,6 +180,9 @@ storage_mknod(const char* path, int mode, int is_dir)
     node->mode = mode;
     node->size = 0;
 
+
+
+    printf("+ mknod did here\n");
     if (directory_lookup(node, name) != -ENOENT) {
         printf("mknod fail: already exist\n");
         return -EEXIST;
@@ -190,7 +191,6 @@ storage_mknod(const char* path, int mode, int is_dir)
     char* parent = get_parent(path);
     int parent_inum = tree_lookup(parent);
     inode* parentdir = get_inode(parent_inum);
-    free(parent);
 
     printf("+ mknod create %s [%04o] - #%d\n", path, mode, inum);
 
@@ -225,7 +225,7 @@ storage_unlink(const char* path)
     char* parent = get_parent(path);
     int inum = tree_lookup(parent);
     inode* node = get_inode(inum);
-    free(parent);
+  
     const char* name = path + 1;
     return directory_delete(node, name);
 }
@@ -251,7 +251,7 @@ storage_link(const char* from, const char* to)
     int inum = tree_lookup(from);
     inode* parentnode = get_inode(parentinum);
     
-    free(parent);
+    
     inode* node = get_inode(inum);
     node->refs += 1;
     int is_dir = 0;

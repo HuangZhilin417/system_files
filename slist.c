@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <alloca.h>
-
+#include <stdio.h>
 #include "slist.h"
 
 slist*
@@ -12,6 +12,19 @@ s_cons(const char* text, slist* rest)
     xs->refs = 1;
     xs->next = rest;
     return xs;
+}
+
+void
+print_list(slist* xs){
+	printf("__list start__\n");
+	int i = 0;
+	while(xs){
+	printf("the index is %d, the name is: %s\n", i, xs->data);
+	xs = xs->next;
+	i++;
+	}
+	printf("__list end__\n");
+
 }
 
 void
